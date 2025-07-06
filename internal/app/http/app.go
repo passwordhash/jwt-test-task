@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/passwordhash/jwt-test-task/internal/config"
+	"github.com/passwordhash/jwt-test-task/internal/handler/api/v1/auth"
 )
 
 type App struct {
@@ -53,6 +54,9 @@ func (a *App) Run() error {
 	log.Info("Starting HTTP server")
 
 	mux := http.NewServeMux()
+
+	authHandler := auth.NewHandler()
+	authHandler.RegisterRoutes(mux)
 
 	srv := &http.Server{
 		Addr:         ":" + strconv.Itoa(a.port),
