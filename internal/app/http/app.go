@@ -31,7 +31,8 @@ func New(
 	authSvc *authSvc.Service,
 ) *App {
 	return &App{
-		log: log,
+		log:     log,
+		authSvc: authSvc,
 
 		port:         cfg.Port,
 		readTimeout:  cfg.ReadTimeout,
