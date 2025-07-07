@@ -13,7 +13,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
-  migrate-postgres:
+  migrate:
     image: migrate/migrate:4
     command: ["-path=/migrations", "-database=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable", "up"]
     depends_on:

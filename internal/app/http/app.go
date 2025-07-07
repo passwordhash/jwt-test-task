@@ -9,11 +9,14 @@ import (
 	"time"
 
 	"github.com/passwordhash/jwt-test-task/internal/config"
-	"github.com/passwordhash/jwt-test-task/internal/handler/api/v1/auth"
+	authHandler "github.com/passwordhash/jwt-test-task/internal/handler/api/v1/auth"
+	authSvc "github.com/passwordhash/jwt-test-task/internal/service/auth"
 )
 
 type App struct {
-	log          *slog.Logger
+	log     *slog.Logger
+	authSvc *authSvc.Service
+
 	port         int
 	readTimeout  time.Duration
 	writeTimeout time.Duration
@@ -25,9 +28,11 @@ func New(
 	_ context.Context,
 	log *slog.Logger,
 	cfg config.HttpConfig,
+	authSvc *authSvc.Service,
 ) *App {
 	return &App{
-		log:          log,
+		log: log,
+
 		port:         cfg.Port,
 		readTimeout:  cfg.ReadTimeout,
 		writeTimeout: cfg.WriteTimeout,
@@ -55,7 +60,7 @@ func (a *App) Run() error {
 
 	mux := http.NewServeMux()
 
-	authHandler := auth.NewHandler()
+	authHandler := authHandler.New(a.authSvc)
 	authHandler.RegisterRoutes(mux)
 
 	srv := &http.Server{

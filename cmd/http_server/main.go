@@ -11,6 +11,10 @@ import (
 	"github.com/passwordhash/jwt-test-task/internal/config"
 )
 
+// TODO: Make shutdown timeout configurable
+// TODO: File sync with docker
+// TODO: Logging middleware
+
 const shutdownTimeout = 5 * time.Second
 
 func main() {

@@ -6,6 +6,7 @@ import (
 
 	httpApp "github.com/passwordhash/jwt-test-task/internal/app/http"
 	"github.com/passwordhash/jwt-test-task/internal/config"
+	"github.com/passwordhash/jwt-test-task/internal/service/auth"
 )
 
 type App struct {
@@ -19,10 +20,15 @@ func New(
 ) *App {
 	// TODO: connect to database
 
+	authService := auth.NewService(
+		log.With("service", "auth"),
+	)
+
 	httpApp := httpApp.New(
 		ctx,
 		log,
 		cfg.HTTP,
+		authService,
 	)
 
 	return &App{
