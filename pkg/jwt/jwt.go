@@ -1,22 +1,21 @@
 package jwt
 
 import (
-	"bytes"
+	"crypto/hmac"
+	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"time"
 )
 
-type T struct{}
-
-type Error struct {
-	Message string
-	Err     error
+type Err struct {
+	reason string
+	err    error
 }
 
-func (e *Error) Error() string {
-	return fmt.Sprintf("jwt error: %s, details: %v", e.Message, e.Err)
+func (e *Err) Error() string {
+	return fmt.Sprintf("jwt error: %s, details: %v", e.reason, e.err)
 }
 
 type Alg string
@@ -25,10 +24,12 @@ const (
 	HS512 Alg = "HS512"
 )
 
-// header.payload.signature
+const (
+	JWTType = "jwt"
+)
 
 type Header struct {
-	Alg string `json:"alg"`
+	Alg Alg    `json:"alg"`
 	Typ string `json:"typ"`
 }
 
@@ -38,11 +39,19 @@ type Payload struct {
 	Exp int64 `json:"exp"`
 }
 
-// TODO: validate alg
-func (*T) NewToken(alg string, sub any, ttl time.Duration) (string, error) {
+type T struct{}
+
+func (t *T) NewToken(alg string, sub any, ttl time.Duration, secret string) (string, error) {
+	var err error
+
 	header := Header{
-		Alg: string(alg),
-		Typ: "jwt",
+		Alg: Alg(alg), // TODO: validate alg
+		Typ: JWTType,
+	}
+
+	headerBase64, err := encodeBase64(header)
+	if err != nil {
+		return "", &Err{reason: "encoding header in base 64 failed", err: err}
 	}
 
 	n := time.Now()
@@ -52,47 +61,47 @@ func (*T) NewToken(alg string, sub any, ttl time.Duration) (string, error) {
 		Exp: n.Add(ttl).Unix(),
 	}
 
-	encodedHeader, err := encode(header)
+	payloadBase64, err := encodeBase64(p)
 	if err != nil {
-		return "", err
+		return "", &Err{reason: "encoding payload in base 64 failed", err: err}
 	}
 
-	encodedPayload, err := encode(p)
+	signature, err := sign(header.Alg, headerBase64, payloadBase64, []byte(secret)) // TODO: returns string or byte slice ?
 	if err != nil {
-		return "", err
+		return "", &Err{reason: "signing failed", err: err}
 	}
 
-	token := fmt.Sprintf("%s.%s", encodedHeader, encodedPayload)
+	signatureBase64 := make([]byte, base64.RawURLEncoding.EncodedLen(len(signature)))
+	base64.RawURLEncoding.Encode(signatureBase64, signature)
+
+	token := fmt.Sprintf("%s.%s.%s", string(headerBase64), string(payloadBase64), string(signatureBase64))
 
 	return token, nil
 }
 
-func encode(data any) (encoded []byte, encErr *Error) {
-	encErr = &Error{Message: "failed to encode data"}
+func sign(alg Alg, encodedHeader, encodedPayload, secret []byte) ([]byte, error) {
+	switch alg {
+	case HS512:
+		mac := hmac.New(sha512.New, secret)
 
+		mac.Write(encodedHeader)
+		mac.Write([]byte{'.'})
+		mac.Write(encodedPayload)
+
+		return mac.Sum(nil), nil
+	default:
+		return nil, &Err{reason: "unsupported algorithm"}
+	}
+}
+
+func encodeBase64(data any) ([]byte, error) {
 	b, err := json.Marshal(data)
 	if err != nil {
-		encErr.Err = err
-		return
+		return nil, &Err{reason: "failed to encode in base 64", err: err}
 	}
 
-	buf := bytes.Buffer{}
+	buf := make([]byte, base64.RawURLEncoding.EncodedLen(len(b)))
+	base64.RawURLEncoding.Encode(buf, b)
 
-	enc := base64.NewEncoder(base64.URLEncoding, &buf)
-	defer func() { _ = enc.Close() }()
-
-	if _, err := enc.Write(b); err != nil {
-		encErr.Err = err
-		return
-	}
-
-	encoded = buf.Bytes()
-	if len(encoded) == 0 {
-		encErr.Err = fmt.Errorf("encoded data is empty")
-		return
-	}
-
-	// TODO: remove padding
-
-	return encoded, nil
+	return buf, nil
 }

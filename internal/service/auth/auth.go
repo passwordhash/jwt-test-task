@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -11,7 +10,7 @@ import (
 )
 
 type JWTService interface {
-	NewToken(alg string, sub any, ttl time.Duration) (string, error)
+	NewToken(alg string, sub any, ttl time.Duration, secret string) (string, error)
 }
 
 type Service struct {
@@ -40,7 +39,8 @@ func (s *Service) GetPair(ctx context.Context, id, ip, userAgent string) (access
 		return "", "", svcErr.ErrInvalidID
 	}
 
-	access, err = s.jwtService.NewToken("HS512", id, 15*time.Minute)
+	const secret = "some_strong_secret"
+	access, err = s.jwtService.NewToken("HS512", id, 15*time.Minute, secret)
 	if err != nil {
 		log.Error("failed to create access token", slog.Any("error", err))
 
