@@ -14,6 +14,8 @@ const (
 	refreshTokenLength = 32
 )
 
+type RefreshTokenSaver interface{}
+
 type RefreshTokenProvider interface {
 	Generate(length int) (string, error)
 	Hash(token string) (string, error)
@@ -22,20 +24,23 @@ type RefreshTokenProvider interface {
 type Service struct {
 	log *slog.Logger
 
+	refreshSaver    RefreshTokenSaver
 	refreshProvider RefreshTokenProvider
 
 	accessTTL time.Duration
 	secret    string
 }
 
-func NewService(
+func New(
 	log *slog.Logger,
+	refreshSaver RefreshTokenSaver,
 	refreshProvider RefreshTokenProvider,
 	accessTTL time.Duration,
 	secret string,
 ) *Service {
 	return &Service{
 		log:             log,
+		refreshSaver:    refreshSaver,
 		refreshProvider: refreshProvider,
 		accessTTL:       accessTTL,
 		secret:          secret,

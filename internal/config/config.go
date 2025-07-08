@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
@@ -9,8 +10,9 @@ import (
 )
 
 type Config struct {
-	App  AppConfig  `yaml:"app"`
-	HTTP HttpConfig `yaml:"http"`
+	App  AppConfig      `yaml:"app"`
+	HTTP HttpConfig     `yaml:"http"`
+	PG   PostgresConfig `yaml:"postgres"`
 }
 
 type AppConfig struct {
@@ -25,11 +27,15 @@ type HttpConfig struct {
 	ReadTimeout  time.Duration `env:"READ_TIMEOUT" yaml:"read_timeout" env-default:"10"`
 }
 
-type DBConfig struct {
+type PostgresConfig struct {
 	Host     string `env:"POSTGRES_HOST" yaml:"host" env-required:"true"`
 	Port     int    `env:"POSTGRES_PORT" yaml:"port" env-required:"true"`
 	Username string `env:"POSTGRES_USER" yaml:"user" env-required:"true"`
 	Password string `env:"POSTGRES_PASSWORD" yaml:"password" env-required:"true"`
+}
+
+func (p PostgresConfig) DSN() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%d", p.Username, p.Password, p.Host, p.Port)
 }
 
 // MustLoad loads the configuration from a file specified by the `config` flag or

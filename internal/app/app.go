@@ -7,6 +7,9 @@ import (
 	httpApp "github.com/passwordhash/jwt-test-task/internal/app/http"
 	"github.com/passwordhash/jwt-test-task/internal/config"
 	"github.com/passwordhash/jwt-test-task/internal/service/auth"
+	authSvc "github.com/passwordhash/jwt-test-task/internal/service/auth"
+	authStorage "github.com/passwordhash/jwt-test-task/internal/storage/postgres/auth"
+	postgresPkg "github.com/passwordhash/jwt-test-task/pkg/postgres"
 )
 
 type App struct {
@@ -18,10 +21,16 @@ func New(
 	log *slog.Logger,
 	cfg *config.Config,
 ) *App {
-	// TODO: connect to database
+	postgresPool, err := postgresPkg.NewPool(ctx, cfg.PG.DSN())
+	if err != nil {
+		panic("failed to create postgres pool: " + err.Error())
+	}
 
-	authService := auth.NewService(
+	authStorage := authStorage.New(postgresPool)
+
+	authService := authSvc.New(
 		log.WithGroup("service"),
+		authStorage,
 		auth.RefreshTokenManager{},
 		cfg.App.AccessTTL,
 		cfg.App.JWTSecret,
