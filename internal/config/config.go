@@ -9,8 +9,14 @@ import (
 )
 
 type Config struct {
-	Env  string     `env:"ENV" yaml:"env" env-required:"true"`
+	App  AppConfig  `yaml:"app"`
 	HTTP HttpConfig `yaml:"http"`
+}
+
+type AppConfig struct {
+	Env       string        `env:"ENV" yaml:"env" env-required:"true"`
+	JWTSecret string        `env:"JWT_SECRET" env-required:"true"`
+	AccessTTL time.Duration `env:"ACCESS_TTL" yaml:"access_ttl" env-required:"true"`
 }
 
 type HttpConfig struct {

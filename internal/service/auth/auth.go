@@ -7,24 +7,25 @@ import (
 
 	"github.com/google/uuid"
 	svcErr "github.com/passwordhash/jwt-test-task/internal/service/errors"
+	"github.com/passwordhash/jwt-test-task/pkg/jwt"
 )
 
-type JWTService interface {
-	NewToken(alg string, sub any, ttl time.Duration, secret string) (string, error)
-}
-
 type Service struct {
-	log        *slog.Logger
-	jwtService JWTService
+	log *slog.Logger
+
+	accessTTL time.Duration
+	secret    string
 }
 
 func NewService(
 	log *slog.Logger,
-	jwtService JWTService,
+	accessTTL time.Duration,
+	secret string,
 ) *Service {
 	return &Service{
-		log:        log,
-		jwtService: jwtService,
+		log:       log,
+		accessTTL: accessTTL,
+		secret:    secret,
 	}
 }
 
@@ -39,8 +40,7 @@ func (s *Service) GetPair(ctx context.Context, id, ip, userAgent string) (access
 		return "", "", svcErr.ErrInvalidID
 	}
 
-	const secret = "some_strong_secret"
-	access, err = s.jwtService.NewToken("HS512", id, 15*time.Minute, secret)
+	access, err = jwt.NewToken("HS512", id, s.accessTTL, s.secret)
 	if err != nil {
 		log.Error("failed to create access token", slog.Any("error", err))
 

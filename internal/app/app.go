@@ -7,7 +7,6 @@ import (
 	httpApp "github.com/passwordhash/jwt-test-task/internal/app/http"
 	"github.com/passwordhash/jwt-test-task/internal/config"
 	"github.com/passwordhash/jwt-test-task/internal/service/auth"
-	"github.com/passwordhash/jwt-test-task/pkg/jwt"
 )
 
 type App struct {
@@ -23,7 +22,8 @@ func New(
 
 	authService := auth.NewService(
 		log.WithGroup("service"),
-		&jwt.T{},
+		cfg.App.AccessTTL,
+		cfg.App.JWTSecret,
 	)
 
 	httpApp := httpApp.New(

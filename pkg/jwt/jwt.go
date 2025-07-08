@@ -39,9 +39,7 @@ type Payload struct {
 	Exp int64 `json:"exp"`
 }
 
-type T struct{}
-
-func (t *T) NewToken(alg string, sub any, ttl time.Duration, secret string) (string, error) {
+func NewToken(alg string, sub any, ttl time.Duration, secret string) (string, error) {
 	var err error
 
 	header := Header{

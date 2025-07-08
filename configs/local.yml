@@ -1,4 +1,6 @@
-env: dev
+app:
+    env: dev
+    access_ttl: 15m
 
 http:
     port: 8080
