@@ -10,8 +10,19 @@ import (
 	"github.com/passwordhash/jwt-test-task/pkg/jwt"
 )
 
+const (
+	refreshTokenLength = 32
+)
+
+type RefreshTokenProvider interface {
+	Generate(length int) (string, error)
+	Hash(token string) (string, error)
+}
+
 type Service struct {
 	log *slog.Logger
+
+	refreshProvider RefreshTokenProvider
 
 	accessTTL time.Duration
 	secret    string
@@ -19,13 +30,15 @@ type Service struct {
 
 func NewService(
 	log *slog.Logger,
+	refreshProvider RefreshTokenProvider,
 	accessTTL time.Duration,
 	secret string,
 ) *Service {
 	return &Service{
-		log:       log,
-		accessTTL: accessTTL,
-		secret:    secret,
+		log:             log,
+		refreshProvider: refreshProvider,
+		accessTTL:       accessTTL,
+		secret:          secret,
 	}
 }
 
@@ -47,5 +60,14 @@ func (s *Service) GetPair(ctx context.Context, id, ip, userAgent string) (access
 		return "", "", err
 	}
 
-	return access, "bar", nil
+	refresh, err = s.refreshProvider.Generate(refreshTokenLength)
+	if err != nil {
+		log.Error("failed to generate refresh token", slog.Any("error", err))
+
+		return "", "", err
+	}
+
+	// TODO: store refresh token in database with id, ip, userAgent
+
+	return access, refresh, nil
 }

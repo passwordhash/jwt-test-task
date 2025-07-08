@@ -22,6 +22,7 @@ func New(
 
 	authService := auth.NewService(
 		log.WithGroup("service"),
+		auth.RefreshTokenManager{},
 		cfg.App.AccessTTL,
 		cfg.App.JWTSecret,
 	)
