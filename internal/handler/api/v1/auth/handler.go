@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
-	"github.com/passwordhash/jwt-test-task/internal/handler/response"
+	"github.com/passwordhash/jwt-test-task/internal/handler/api/v1/response"
 )
 
 type TokensProvider interface {
-	GetPair(ctx context.Context, id, ip, userAgent string) (access, refresh string, err error)
+	GetPair(ctx context.Context, id, remoteAddr, userAgent string) (access, refresh string, err error)
 }
 
 type Handler struct {
@@ -35,7 +34,6 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	ip := getIP(r)
 	userAgent := r.Header.Get("User-Agent")
 
 	if id == "" || userAgent == "" {
@@ -43,7 +41,7 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	access, refresh, err := h.tokensProvider.GetPair(r.Context(), id, ip, userAgent)
+	access, refresh, err := h.tokensProvider.GetPair(r.Context(), id, r.RemoteAddr, userAgent)
 	if err != nil {
 		// TODO: add proper handling
 		http.Error(w, fmt.Sprintf("failed to get tokens: %v", err), http.StatusInternalServerError)
@@ -85,12 +83,4 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, _ = fmt.Fprintf(w, "logout endpoint")
-}
-
-func getIP(r *http.Request) string {
-	ip := r.RemoteAddr
-	if strings.Contains(ip, ":") {
-		ip = ip[:strings.LastIndex(ip, ":")]
-	}
-	return ip
 }

@@ -2,7 +2,9 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"net"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,9 +17,11 @@ const (
 	refreshTokenLength = 32
 )
 
-type RefreshTokenSaver interface{}
+type RefreshTokenSaver interface {
+	Save(ctx context.Context, userID, token, userAgent, ip string) (string, error)
+}
 
-type RefreshTokenProvider interface {
+type RefreshTokenGenerator interface {
 	Generate(length int) (string, error)
 	Hash(token string) (string, error)
 }
@@ -25,8 +29,8 @@ type RefreshTokenProvider interface {
 type Service struct {
 	log *slog.Logger
 
-	refreshSaver    RefreshTokenSaver
-	refreshProvider RefreshTokenProvider
+	refreshSaver          RefreshTokenSaver
+	refreshTokenGenerator RefreshTokenGenerator
 
 	accessTTL time.Duration
 	secret    string
@@ -35,23 +39,23 @@ type Service struct {
 func New(
 	log *slog.Logger,
 	refreshSaver RefreshTokenSaver,
-	refreshProvider RefreshTokenProvider,
+	refreshTokenGenerator RefreshTokenGenerator,
 	accessTTL time.Duration,
 	secret string,
 ) *Service {
 	return &Service{
-		log:             log,
-		refreshSaver:    refreshSaver,
-		refreshProvider: refreshProvider,
-		accessTTL:       accessTTL,
-		secret:          secret,
+		log:                   log,
+		refreshSaver:          refreshSaver,
+		refreshTokenGenerator: refreshTokenGenerator,
+		accessTTL:             accessTTL,
+		secret:                secret,
 	}
 }
 
-func (s *Service) GetPair(_ context.Context, id, ip, userAgent string) (access, refresh string, err error) {
-	const op = "auth.service.GetPair"
+func (s *Service) GetPair(ctx context.Context, id, remoteAddr, userAgent string) (access, refresh string, err error) {
+	const op = "tokens.service.GetPair"
 
-	log := s.log.With("op", op, "id", id, "ip", ip, "userAgent", userAgent)
+	log := s.log.With("op", op, "id", id, "remoteAddr", remoteAddr, "userAgent", userAgent)
 
 	if _, err := uuid.Parse(id); err != nil {
 		log.Warn("invalid id", slog.String("id", id), slog.Any("error", err))
@@ -66,14 +70,27 @@ func (s *Service) GetPair(_ context.Context, id, ip, userAgent string) (access, 
 		return "", "", err
 	}
 
-	refresh, err = s.refreshProvider.Generate(refreshTokenLength)
+	refresh, err = s.refreshTokenGenerator.Generate(refreshTokenLength)
 	if err != nil {
 		log.Error("failed to generate refresh token", slog.Any("error", err))
 
 		return "", "", err
 	}
 
-	// TODO: store refresh token in database with id, ip, userAgent
+	ip, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		log.Error("failed to split host and port from IP", slog.Any("error", err))
+
+		return "", "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = s.refreshSaver.Save(ctx, id, refresh, userAgent, ip)
+	// TODO: handle error properly
+	if err != nil {
+		log.Error("failed to save refresh token", slog.Any("error", err))
+
+		return "", "", err
+	}
 
 	return access, refresh, nil
 }

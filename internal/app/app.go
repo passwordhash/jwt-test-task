@@ -7,7 +7,7 @@ import (
 	httpApp "github.com/passwordhash/jwt-test-task/internal/app/http"
 	"github.com/passwordhash/jwt-test-task/internal/config"
 	authSvc "github.com/passwordhash/jwt-test-task/internal/service/auth"
-	authStorage "github.com/passwordhash/jwt-test-task/internal/storage/postgres/auth"
+	authStorage "github.com/passwordhash/jwt-test-task/internal/storage/postgres/tokens"
 	postgresPkg "github.com/passwordhash/jwt-test-task/pkg/postgres"
 )
 

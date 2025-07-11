@@ -8,7 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var _ RefreshTokenProvider = (*RefreshTokenManager)(nil)
+var _ RefreshTokenGenerator = (*RefreshTokenManager)(nil)
 
 // RefreshTokenManager is a struct that provides methods to manage refresh tokens.
 // Can be mocked for testing purposes.

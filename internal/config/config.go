@@ -32,12 +32,12 @@ type PostgresConfig struct {
 	Port     int    `env:"POSTGRES_PORT" yaml:"port" env-required:"true"`
 	Username string `env:"POSTGRES_USER" yaml:"user" env-required:"true"`
 	Password string `env:"POSTGRES_PASSWORD" yaml:"password" env-required:"true"`
+	Database string `env:"POSTGRES_DB" yaml:"database" env-required:"true"`
 	MaxConns int32  `env:"POSTGRES_MAX_CONNS" yaml:"max_conns" env-default:"10"`
 }
 
 func (p PostgresConfig) DSN() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%d", p.Username, p.Password, p.Host, p.Port)
-}
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", p.Username, p.Password, p.Host, p.Port, p.Database)}
 
 // MustLoad loads the configuration from a file specified by the `config` flag or
 // the `CONFIG_PATH` environment variable. If the configuration file is not found
