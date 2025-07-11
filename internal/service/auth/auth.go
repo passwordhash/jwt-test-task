@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	svcErr "github.com/passwordhash/jwt-test-task/internal/service/errors"
 	"github.com/passwordhash/jwt-test-task/pkg/jwt"
 )
@@ -47,7 +48,7 @@ func New(
 	}
 }
 
-func (s *Service) GetPair(ctx context.Context, id, ip, userAgent string) (access, refresh string, err error) {
+func (s *Service) GetPair(_ context.Context, id, ip, userAgent string) (access, refresh string, err error) {
 	const op = "auth.service.GetPair"
 
 	log := s.log.With("op", op, "id", id, "ip", ip, "userAgent", userAgent)

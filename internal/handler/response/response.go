@@ -12,7 +12,7 @@ func ValidateMethod(r *http.Request, w http.ResponseWriter, expected string) boo
 	return true
 }
 
-func ValidateIdQueryParam(r *http.Request, w http.ResponseWriter) (string, bool) {
+func ValidateIDQueryParam(r *http.Request, w http.ResponseWriter) (string, bool) {
 	id := r.URL.Query().Get("id")
 	if id == "" {
 		http.Error(w, "id query parameter is required", http.StatusBadRequest)

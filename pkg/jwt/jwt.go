@@ -88,7 +88,7 @@ func sign(alg Alg, encodedHeader, encodedPayload, secret []byte) ([]byte, error)
 
 		return mac.Sum(nil), nil
 	default:
-		return nil, &Err{reason: "unsupported algorithm"}
+		return nil, &Err{reason: "unsupported algorithm", err: nil}
 	}
 }
 

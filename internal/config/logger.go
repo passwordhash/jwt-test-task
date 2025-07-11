@@ -7,21 +7,19 @@ import (
 
 func SetupLogger(env string) *slog.Logger {
 	var handler slog.Handler
+	handlerOpts := new(slog.HandlerOptions)
 	w := os.Stdout
 
 	switch env {
 	case "dev":
-		handler = slog.NewTextHandler(w, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		})
+		handlerOpts.Level = slog.LevelDebug
+		handler = slog.NewTextHandler(w, handlerOpts)
 	case "prod":
-		handler = slog.NewJSONHandler(w, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
-		})
+		handlerOpts.Level = slog.LevelInfo
+		handler = slog.NewJSONHandler(w, handlerOpts)
 	default:
-		handler = slog.NewTextHandler(w, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		})
+		handlerOpts.Level = slog.LevelDebug
+		handler = slog.NewTextHandler(w, handlerOpts)
 	}
 
 	return slog.New(handler)

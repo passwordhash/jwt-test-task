@@ -11,7 +11,7 @@ import (
 
 type Config struct {
 	App  AppConfig      `yaml:"app"`
-	HTTP HttpConfig     `yaml:"http"`
+	HTTP HTTPConfig     `yaml:"http"`
 	PG   PostgresConfig `yaml:"postgres"`
 }
 
@@ -21,7 +21,7 @@ type AppConfig struct {
 	AccessTTL time.Duration `env:"ACCESS_TTL" yaml:"access_ttl" env-required:"true"`
 }
 
-type HttpConfig struct {
+type HTTPConfig struct {
 	Port         int           `env:"PORT" yaml:"port" env-required:"true"`
 	WriteTimeout time.Duration `env:"WRITE_TIMEOUT" yaml:"write_timeout" env-default:"10"`
 	ReadTimeout  time.Duration `env:"READ_TIMEOUT" yaml:"read_timeout" env-default:"10"`
@@ -32,6 +32,7 @@ type PostgresConfig struct {
 	Port     int    `env:"POSTGRES_PORT" yaml:"port" env-required:"true"`
 	Username string `env:"POSTGRES_USER" yaml:"user" env-required:"true"`
 	Password string `env:"POSTGRES_PASSWORD" yaml:"password" env-required:"true"`
+	MaxConns int32  `env:"POSTGRES_MAX_CONNS" yaml:"max_conns" env-default:"10"`
 }
 
 func (p PostgresConfig) DSN() string {
@@ -55,8 +56,7 @@ func MustLoad() *Config {
 		panic("there is no config file: " + cfgPath)
 	}
 
-	cfg := &Config{}
-
+	cfg := new(Config)
 	if err := cleanenv.ReadConfig(cfgPath, cfg); err != nil {
 		panic("failed to load config: " + err.Error())
 	}

@@ -14,24 +14,24 @@ type TokensProvider interface {
 	GetPair(ctx context.Context, id, ip, userAgent string) (access, refresh string, err error)
 }
 
-type handler struct {
+type Handler struct {
 	tokensProvider TokensProvider
 }
 
 func New(
 	tokensProvider TokensProvider,
-) *handler {
-	return &handler{
+) *Handler {
+	return &Handler{
 		tokensProvider: tokensProvider,
 	}
 }
 
-func (h *handler) token(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 	if !response.ValidateMethod(r, w, http.MethodPost) {
 		return
 	}
 
-	id, ok := response.ValidateIdQueryParam(r, w)
+	id, ok := response.ValidateIDQueryParam(r, w)
 	if !ok {
 		return
 	}
@@ -60,31 +60,31 @@ func (h *handler) token(w http.ResponseWriter, r *http.Request) {
 
 	respBody, _ := json.Marshal(resp)
 
-	fmt.Fprintf(w, string(respBody))
+	_, _ = fmt.Fprint(w, string(respBody))
 }
 
-func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) refresh(w http.ResponseWriter, r *http.Request) {
 	if !response.ValidateMethod(r, w, http.MethodPost) {
 		return
 	}
 
-	fmt.Fprintf(w, "refresh endpoint")
+	_, _ = fmt.Fprintf(w, "refresh endpoint")
 }
 
-func (h *handler) idByToken(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) idByToken(w http.ResponseWriter, r *http.Request) {
 	if !response.ValidateMethod(r, w, http.MethodGet) {
 		return
 	}
 
-	fmt.Fprintf(w, "idByToken endpoint")
+	_, _ = fmt.Fprintf(w, "idByToken endpoint")
 }
 
-func (h *handler) logout(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 	if !response.ValidateMethod(r, w, http.MethodPost) {
 		return
 	}
 
-	fmt.Fprintf(w, "logout endpoint")
+	_, _ = fmt.Fprintf(w, "logout endpoint")
 }
 
 func getIP(r *http.Request) string {

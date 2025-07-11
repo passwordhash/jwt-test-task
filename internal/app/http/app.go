@@ -27,7 +27,7 @@ type App struct {
 func New(
 	_ context.Context,
 	log *slog.Logger,
-	cfg config.HttpConfig,
+	cfg config.HTTPConfig,
 	authSvc *authSvc.Service,
 ) *App {
 	return &App{
@@ -37,6 +37,8 @@ func New(
 		port:         cfg.Port,
 		readTimeout:  cfg.ReadTimeout,
 		writeTimeout: cfg.WriteTimeout,
+
+		server: nil,
 	}
 }
 
@@ -61,10 +63,10 @@ func (a *App) Run() error {
 
 	mux := http.NewServeMux()
 
-	authHandler := authHandler.New(a.authSvc)
-	authHandler.RegisterRoutes(mux)
+	authHlr := authHandler.New(a.authSvc)
+	authHlr.RegisterRoutes(mux)
 
-	srv := &http.Server{
+	srv := &http.Server{ //nolint:exhaustruct
 		Addr:         ":" + strconv.Itoa(a.port),
 		Handler:      mux,
 		ReadTimeout:  a.readTimeout,

@@ -2,7 +2,7 @@ package auth
 
 import "net/http"
 
-func (h *handler) RegisterRoutes(mux *http.ServeMux) {
+func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/v1/auth/tokens", h.token)
 	mux.HandleFunc("/api/v1/auth/refresh", h.refresh)
 	mux.HandleFunc("/api/v1/auth/me", h.idByToken)  // TODO: protected endpoint

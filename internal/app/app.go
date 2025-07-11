@@ -6,7 +6,6 @@ import (
 
 	httpApp "github.com/passwordhash/jwt-test-task/internal/app/http"
 	"github.com/passwordhash/jwt-test-task/internal/config"
-	"github.com/passwordhash/jwt-test-task/internal/service/auth"
 	authSvc "github.com/passwordhash/jwt-test-task/internal/service/auth"
 	authStorage "github.com/passwordhash/jwt-test-task/internal/storage/postgres/auth"
 	postgresPkg "github.com/passwordhash/jwt-test-task/pkg/postgres"
@@ -21,22 +20,26 @@ func New(
 	log *slog.Logger,
 	cfg *config.Config,
 ) *App {
-	postgresPool, err := postgresPkg.NewPool(ctx, cfg.PG.DSN())
+	postgresPool, err := postgresPkg.NewPool(
+		ctx,
+		cfg.PG.DSN(),
+		postgresPkg.WithMaxConns(cfg.PG.MaxConns),
+	)
 	if err != nil {
 		panic("failed to create postgres pool: " + err.Error())
 	}
 
-	authStorage := authStorage.New(postgresPool)
+	authStg := authStorage.New(postgresPool)
 
 	authService := authSvc.New(
 		log.WithGroup("service"),
-		authStorage,
-		auth.RefreshTokenManager{},
+		authStg,
+		authSvc.RefreshTokenManager{},
 		cfg.App.AccessTTL,
 		cfg.App.JWTSecret,
 	)
 
-	httpApp := httpApp.New(
+	httpSrv := httpApp.New(
 		ctx,
 		log,
 		cfg.HTTP,
@@ -44,6 +47,6 @@ func New(
 	)
 
 	return &App{
-		HTTPSrv: httpApp,
+		HTTPSrv: httpSrv,
 	}
 }
