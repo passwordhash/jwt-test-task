@@ -1,6 +1,6 @@
 app:
     env: dev
-    access_ttl: 15m
+    access_ttl: 1500m
 
 http:
     port: 8080

@@ -5,8 +5,14 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
+)
+
+var (
+	ErrInvalidToken = errors.New("invalid token")
 )
 
 type Err struct {
@@ -102,4 +108,52 @@ func encodeBase64(data any) ([]byte, error) {
 	base64.RawURLEncoding.Encode(buf, b)
 
 	return buf, nil
+}
+
+func ParseToken(token, secret string) (*Payload, error) {
+	ErrParseToken := errors.New("failed to parse token")
+
+	parts := strings.Split(token, ".")
+	if len(parts) < 3 {
+		return nil, &Err{reason: "invalid token format", err: ErrParseToken}
+	}
+
+	header := []byte(parts[0])
+	payload := []byte(parts[1])
+	signature := []byte(parts[2])
+
+	decodedSignature, err := decodeBase64(signature)
+	if err != nil {
+		return nil, &Err{reason: err.Error(), err: ErrParseToken}
+	}
+
+	// TODO: alg from header
+	computedSignature, err := sign(HS512, header, payload, []byte(secret))
+	if err != nil {
+		return nil, &Err{reason: err.Error(), err: ErrParseToken}
+	}
+
+	if !hmac.Equal(decodedSignature, computedSignature) {
+		// TODO: change
+		return nil, &Err{reason: "invalid signature", err: ErrParseToken}
+	}
+
+	decodedPayload, err := decodeBase64(payload)
+	if err != nil {
+		return nil, &Err{reason: err.Error(), err: ErrParseToken}
+	}
+
+	p := new(Payload)
+	if err := json.Unmarshal(decodedPayload, p); err != nil {
+		return nil, &Err{reason: err.Error(), err: ErrParseToken}
+	}
+
+	return p, nil
+}
+
+func decodeBase64(data []byte) ([]byte, error) {
+	buf := make([]byte, base64.RawURLEncoding.DecodedLen(len(data)))
+	_, err := base64.RawURLEncoding.Decode(buf, data)
+
+	return buf, err
 }
