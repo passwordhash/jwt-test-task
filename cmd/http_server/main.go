@@ -11,9 +11,7 @@ import (
 	"github.com/passwordhash/jwt-test-task/internal/config"
 )
 
-// TODO: Make shutdown timeout configurable
-// TODO: File sync with docker
-// TODO: Logging middleware
+// TODO: swagger documentation
 
 const shutdownTimeout = 5 * time.Second
 

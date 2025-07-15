@@ -63,7 +63,7 @@ func (a *App) Run() error {
 
 	mux := http.NewServeMux()
 
-	authHlr := authHandler.New(a.authSvc)
+	authHlr := authHandler.New(a.authSvc, a.authSvc)
 	authHlr.RegisterRoutes(mux)
 
 	srv := &http.Server{ //nolint:exhaustruct

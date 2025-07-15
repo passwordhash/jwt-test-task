@@ -14,15 +14,22 @@ type TokensProvider interface {
 	UserIDByToken(ctx context.Context, token string) (string, error)
 }
 
+type TokenRevoker interface {
+	RevokeRefreshToken(ctx context.Context, userID, userAgent string) error
+}
+
 type Handler struct {
 	tokensProvider TokensProvider
+	tokenRevoker   TokenRevoker
 }
 
 func New(
 	tokensProvider TokensProvider,
+	tokenRevoker TokenRevoker,
 ) *Handler {
 	return &Handler{
 		tokensProvider: tokensProvider,
+		tokenRevoker:   tokenRevoker,
 	}
 }
 
@@ -85,5 +92,18 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _ = fmt.Fprintf(w, "logout endpoint")
+	userID, ok := r.Context().Value(middleware.UserIDKey).(string)
+	if !ok || userID == "" {
+		response.Unauthorized(w, "Unable to identify user")
+		return
+	}
+
+	err := h.tokenRevoker.RevokeRefreshToken(r.Context(), userID, r.Header.Get("User-Agent"))
+	if err != nil {
+		// TODO: add proper handling
+		http.Error(w, fmt.Sprintf("failed to revoke token: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	response.OK(w, "Token revoked successfully")
 }

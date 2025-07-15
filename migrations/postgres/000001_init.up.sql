@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
     is_revoked BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    CONSTRAINT unique_token_useragent_ip UNIQUE (user_id, user_agent, ip_address)
+
+    UNIQUE (user_id, user_agent)
 );
 
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);

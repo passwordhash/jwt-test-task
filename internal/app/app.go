@@ -35,6 +35,7 @@ func New(
 		log.WithGroup("service"),
 		authStg,
 		authSvc.RefreshTokenManager{},
+		authStg,
 		cfg.App.AccessTTL,
 		cfg.App.JWTSecret,
 	)

@@ -21,6 +21,10 @@ type RefreshTokenSaver interface {
 	Save(ctx context.Context, userID, token, userAgent, ip string) (string, error)
 }
 
+type RefreshTokenRevoker interface {
+	Revoke(ctx context.Context, userID, userAgent string) error
+}
+
 type RefreshTokenGenerator interface {
 	Generate(length int) (string, error)
 	Hash(token string) (string, error)
@@ -31,6 +35,7 @@ type Service struct {
 
 	refreshSaver          RefreshTokenSaver
 	refreshTokenGenerator RefreshTokenGenerator
+	refreshTokenRevoker   RefreshTokenRevoker
 
 	accessTTL time.Duration
 	secret    string
@@ -38,8 +43,11 @@ type Service struct {
 
 func New(
 	log *slog.Logger,
+
 	refreshSaver RefreshTokenSaver,
 	refreshTokenGenerator RefreshTokenGenerator,
+	refreshTokenRevoker RefreshTokenRevoker,
+
 	accessTTL time.Duration,
 	secret string,
 ) *Service {
@@ -47,6 +55,7 @@ func New(
 		log:                   log,
 		refreshSaver:          refreshSaver,
 		refreshTokenGenerator: refreshTokenGenerator,
+		refreshTokenRevoker:   refreshTokenRevoker,
 		accessTTL:             accessTTL,
 		secret:                secret,
 	}
@@ -112,4 +121,27 @@ func (s *Service) UserIDByToken(_ context.Context, token string) (string, error)
 	log.Info("user ID from token", slog.Any("userID", payload.Sub))
 
 	return fmt.Sprintf("%v", payload.Sub), nil
+}
+
+func (s *Service) RevokeRefreshToken(ctx context.Context, userID, userAgent string) error {
+	const op = "tokens.service.RevokeRefreshToken"
+
+	log := s.log.With("op", op, "userID", userID, "userAgent", userAgent)
+
+	if _, err := uuid.Parse(userID); err != nil {
+		log.Warn("invalid user ID", slog.String("userID", userID), slog.Any("error", err))
+
+		return svcErr.ErrInvalidID
+	}
+
+	err := s.refreshTokenRevoker.Revoke(ctx, userID, userAgent)
+	if err != nil {
+		log.Error("failed to revoke refresh token", slog.Any("error", err))
+
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	log.Info("refresh token revoked successfully")
+
+	return nil
 }
