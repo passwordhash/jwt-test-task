@@ -4,40 +4,29 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-
 	repoErr "github.com/passwordhash/jwt-test-task/internal/storage/errors"
+	"github.com/passwordhash/jwt-test-task/pkg/postgres"
 )
 
-type DB interface {
-	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
-	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
-	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
-}
-
 type Storage struct {
-	db DB
+	db postgres.DB
 }
 
-func New(db DB) *Storage {
+func New(db postgres.DB) *Storage {
 	return &Storage{
 		db: db,
 	}
 }
 
-func (s *Storage) Save(
-	ctx context.Context,
-	userID, token, userAgent, ip string,
-) (string, error) {
+func (s *Storage) Save(ctx context.Context, userID, tokenID, tokenHash, userAgent, ip string) (string, error) {
 	const op = "storage.tokens.Save"
 
 	query := `
-	INSERT INTO refresh_tokens (user_id, token, user_agent, ip_address)
-	VALUES ($1, $2, $3, $4)
+	INSERT INTO refresh_tokens (user_id, token_id, token_hash, user_agent, ip_address)
+	VALUES ($1, $2, $3, $4, $5)
 	ON CONFLICT (user_id, user_agent) 
 	DO UPDATE SET 
-    		token = EXCLUDED.token,
+    		token_hash = EXCLUDED.token_hash,
 		ip_address = EXCLUDED.ip_address,
     		updated_at = NOW(),
 		created_at = NOW(),
@@ -46,7 +35,7 @@ func (s *Storage) Save(
 	`
 
 	var id string
-	row := s.db.QueryRow(ctx, query, userID, token, userAgent, ip)
+	row := s.db.QueryRow(ctx, query, userID, tokenID, tokenHash, userAgent, ip)
 	err := row.Scan(&id)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)

@@ -13,6 +13,8 @@ import (
 
 var (
 	ErrInvalidToken = errors.New("invalid token")
+	ErrParseToken   = errors.New("failed to parse token")
+	ErrTokenExpired = errors.New("token expired")
 )
 
 type Err struct {
@@ -39,14 +41,14 @@ type Header struct {
 	Typ string `json:"typ"`
 }
 
-type Payload struct {
-	Sub any   `json:"sub"`
-	Iat int64 `json:"iat"`
-	Exp int64 `json:"exp"`
-}
+type Payload map[string]any
 
-func NewToken(alg string, sub any, ttl time.Duration, secret string) (string, error) {
+func NewToken(alg string, claims map[string]any, ttl time.Duration, secret string) (string, error) {
 	var err error
+	now := time.Now()
+
+	claims["iat"] = now.Unix()
+	claims["exp"] = now.Add(ttl).Unix()
 
 	header := Header{
 		Alg: Alg(alg), // TODO: validate alg
@@ -58,14 +60,7 @@ func NewToken(alg string, sub any, ttl time.Duration, secret string) (string, er
 		return "", &Err{reason: "encoding header in base 64 failed", err: err}
 	}
 
-	n := time.Now()
-	p := Payload{
-		Sub: sub,
-		Iat: n.Unix(),
-		Exp: n.Add(ttl).Unix(),
-	}
-
-	payloadBase64, err := encodeBase64(p)
+	payloadBase64, err := encodeBase64(claims)
 	if err != nil {
 		return "", &Err{reason: "encoding payload in base 64 failed", err: err}
 	}
@@ -79,7 +74,6 @@ func NewToken(alg string, sub any, ttl time.Duration, secret string) (string, er
 	base64.RawURLEncoding.Encode(signatureBase64, signature)
 
 	token := fmt.Sprintf("%s.%s.%s", string(headerBase64), string(payloadBase64), string(signatureBase64))
-
 	return token, nil
 }
 
@@ -110,9 +104,7 @@ func encodeBase64(data any) ([]byte, error) {
 	return buf, nil
 }
 
-func ParseToken(token, secret string) (*Payload, error) {
-	ErrParseToken := errors.New("failed to parse token")
-
+func ParseToken(token, secret string) (Payload, error) {
 	parts := strings.Split(token, ".")
 	if len(parts) < 3 {
 		return nil, &Err{reason: "invalid token format", err: ErrParseToken}
@@ -143,9 +135,23 @@ func ParseToken(token, secret string) (*Payload, error) {
 		return nil, &Err{reason: err.Error(), err: ErrParseToken}
 	}
 
-	p := new(Payload)
-	if err := json.Unmarshal(decodedPayload, p); err != nil {
+	var p map[string]any
+	if err := json.Unmarshal(decodedPayload, &p); err != nil {
 		return nil, &Err{reason: err.Error(), err: ErrParseToken}
+	}
+
+	expRaw, exists := p["exp"]
+	if !exists {
+		return nil, &Err{reason: "exp claim missing", err: ErrParseToken}
+	}
+
+	expFloat, ok := expRaw.(float64)
+	if !ok {
+		return nil, &Err{reason: "exp claim has invalid type", err: ErrParseToken}
+	}
+
+	if time.Now().Unix() > int64(expFloat) {
+		return nil, &Err{reason: ErrTokenExpired.Error(), err: ErrTokenExpired}
 	}
 
 	return p, nil

@@ -33,7 +33,7 @@ func New(
 	}
 }
 
-func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) tokens(w http.ResponseWriter, r *http.Request) {
 	if !response.ValidateMethod(r, w, http.MethodPost) {
 		return
 	}
@@ -42,9 +42,9 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	userAgent := r.Header.Get("User-Agent")
 
-	if id == "" || userAgent == "" {
+	userAgent := r.Header.Get("User-Agent")
+	if userAgent == "" {
 		// TODO: add proper handling
 		http.Error(w, "id and User-Agent are required", http.StatusBadRequest)
 		return
@@ -101,7 +101,7 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 	err := h.tokenRevoker.RevokeRefreshToken(r.Context(), userID, r.Header.Get("User-Agent"))
 	if err != nil {
 		// TODO: add proper handling
-		http.Error(w, fmt.Sprintf("failed to revoke token: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("failed to revoke tokens: %v", err), http.StatusInternalServerError)
 		return
 	}
 
