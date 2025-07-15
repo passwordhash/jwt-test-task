@@ -5,8 +5,26 @@ import (
 	"net/http"
 )
 
-func OK(w http.ResponseWriter, data interface{}) {
-	jsonResponse(w, http.StatusOK, data)
+type response struct {
+	Success bool   `json:"success"`
+	Data    any    `json:"data,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+func OK(w http.ResponseWriter, data any) {
+	jsonResponse(w, http.StatusOK, response{
+		Success: true,
+		Data:    data,
+		Message: "",
+	})
+}
+
+func Unauthorized(w http.ResponseWriter, message string) {
+	jsonResponse(w, http.StatusUnauthorized, response{
+		Success: false,
+		Data:    nil,
+		Message: message,
+	})
 }
 
 func jsonResponse(w http.ResponseWriter, status int, data interface{}) {
@@ -20,9 +38,18 @@ func jsonResponse(w http.ResponseWriter, status int, data interface{}) {
 	}
 }
 
+// ValidateMethod checks if the request method matches the expected method.
+// If not, it responds with a 405 Method Not Allowed error.
+//
+// Note: in go 1.22, in url/http there is a new opportunity to use mux.HandleFunc("POST /api/v1/auth/tokens", h.token),
+// but in this case, response type will be plain text, not json.
 func ValidateMethod(r *http.Request, w http.ResponseWriter, expected string) bool {
 	if r.Method != expected {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		jsonResponse(w, http.StatusMethodNotAllowed, response{
+			Success: false,
+			Data:    nil,
+			Message: "Method not allowed",
+		})
 		return false
 	}
 	return true

@@ -57,6 +57,13 @@ func (s *Service) GetPair(ctx context.Context, id, remoteAddr, userAgent string)
 
 	log := s.log.With("op", op, "id", id, "remoteAddr", remoteAddr, "userAgent", userAgent)
 
+	ip, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		log.Error("failed to split host and port from IP", slog.Any("error", err))
+
+		return "", "", fmt.Errorf("%s: %w", op, err)
+	}
+
 	if _, err := uuid.Parse(id); err != nil {
 		log.Warn("invalid id", slog.String("id", id), slog.Any("error", err))
 
@@ -77,13 +84,6 @@ func (s *Service) GetPair(ctx context.Context, id, remoteAddr, userAgent string)
 		return "", "", err
 	}
 
-	ip, _, err := net.SplitHostPort(remoteAddr)
-	if err != nil {
-		log.Error("failed to split host and port from IP", slog.Any("error", err))
-
-		return "", "", fmt.Errorf("%s: %w", op, err)
-	}
-
 	_, err = s.refreshSaver.Save(ctx, id, refresh, userAgent, ip)
 	// TODO: handle error properly
 	if err != nil {
@@ -91,6 +91,8 @@ func (s *Service) GetPair(ctx context.Context, id, remoteAddr, userAgent string)
 
 		return "", "", err
 	}
+
+	log.Info("tokens generated successfully")
 
 	return access, refresh, nil
 }
