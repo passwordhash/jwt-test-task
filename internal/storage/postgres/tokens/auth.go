@@ -29,9 +29,15 @@ func (s *Storage) Save(
 	const op = "storage.tokens.Save"
 
 	query := `
-		INSERT INTO refresh_tokens (user_id, token, user_agent, ip_address)
-		VALUES ($1, $2, $3, $4)	
-		RETURNING id
+	INSERT INTO refresh_tokens (user_id, token, user_agent, ip_address)
+	VALUES ($1, $2, $3, $4)
+	ON CONFLICT (user_id, user_agent, ip_address) 
+	DO UPDATE SET 
+    		token = EXCLUDED.token,
+    		updated_at = NOW(),
+		created_at = NOW(),
+    		is_revoked = FALSE
+	RETURNING id;
 	`
 
 	var id string

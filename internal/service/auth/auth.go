@@ -95,16 +95,10 @@ func (s *Service) GetPair(ctx context.Context, id, remoteAddr, userAgent string)
 	return access, refresh, nil
 }
 
-func (s *Service) UserIDByToken(ctx context.Context, token string) (string, error) {
+func (s *Service) UserIDByToken(_ context.Context, token string) (string, error) {
 	const op = "tokens.service.UserIDByToken"
 
 	log := s.log.With("op", op, "token", token)
-
-	//if token == "" {
-	//	log.Warn("empty token provided")
-	//
-	//	return "", svcErr.ErrEmptyToken
-	//}
 
 	payload, err := jwt.ParseToken(token, s.secret)
 	if err != nil {
@@ -112,6 +106,8 @@ func (s *Service) UserIDByToken(ctx context.Context, token string) (string, erro
 
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
+
+	log.Info("user ID from token", slog.Any("userID", payload.Sub))
 
 	return fmt.Sprintf("%v", payload.Sub), nil
 }

@@ -2,9 +2,9 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/passwordhash/jwt-test-task/internal/handler/api/v1/response"
 )
@@ -49,17 +49,10 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: temp
-	resp := map[string]string{
-		"access_token":  access,
-		"refresh_token": refresh,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	respBody, _ := json.Marshal(resp)
-
-	_, _ = fmt.Fprint(w, string(respBody))
+	response.OK(w, tokensResponse{
+		AccessToken:  access,
+		RefreshToken: refresh,
+	})
 }
 
 func (h *Handler) refresh(w http.ResponseWriter, r *http.Request) {
@@ -89,9 +82,7 @@ func (h *Handler) idByToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _ = fmt.Fprintf(w, "%+v", struct {
-		UserID string `json:"user_id"`
-	}{
+	response.OK(w, userIDResponse{
 		UserID: userID,
 	})
 }
@@ -111,9 +102,9 @@ func tokenFromHeader(r *http.Request) (string, error) {
 	}
 
 	const prefix = "Bearer "
-	if len(authHeader) <= len(prefix) || authHeader[:len(prefix)] != prefix {
+	if !strings.HasPrefix(authHeader, prefix) && len(authHeader) > len(prefix) {
 		return "", fmt.Errorf("invalid Authorization header format")
 	}
 
-	return authHeader[len(prefix):], nil
+	return strings.TrimPrefix(authHeader, prefix), nil
 }
